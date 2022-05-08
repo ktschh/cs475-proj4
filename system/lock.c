@@ -45,6 +45,18 @@ local	lid32	newlock(void)
 
 	//TODO - if there is no such lock, return SYSERR
 
+	for (i = 0; i < NLOCK; i++)
+	{
+		if (loctab[i]->state == LOCK_FREE)
+		{
+			loctab[i]->state = LOCK_USED;
+			loctab[i]->lock = FALSE;
+			return i;
+		}
+	}
+
+	return SYSERR;
+
 	//TODO END
 }
 
@@ -73,8 +85,17 @@ syscall	lock_delete(lid32 lockid)
 	//TODO START
 
 	//TODO - reset lock's state to free and the mutex to FALSE
+	loctab[lockid]->state = LOCK_FREE;
+	loctab[lockid]->lock = FALSE;
 
 	//TODO - remove all processes waiting on its queue, and send them to the ready queue
+
+	pid32 temp;
+	while (loctab[lockid]->wait_queue.nonempty())
+	{
+		temp = loctab[lockid]->wait_queue.dequeue();
+		enqueue(temp, readyqueue, proctab[temp]->prprio);
+	}
 
 	//TODO (RAG) - remove all RAG edges to and from this lock
 
@@ -110,6 +131,7 @@ syscall	acquire(lid32 lockid)
 
 	//TODO START
 	//TODO - enqueue the current process ID on the lock's wait queue
+	enqueue(currpid, loctab[lockid]->wait_queue, proctab[currpid]->prprio);
 	//TODO (RAG) - add a request edge in the RAG
 	//TODO END
 
@@ -117,12 +139,13 @@ syscall	acquire(lid32 lockid)
 
 	//TODO START
 	//TODO - lock the mutex!
+	loctab[lockid]->lock = TRUE;
 	//TODO END
 
 	mask = disable();			//disable interrupts
 
 	//TODO START
-	//TODO (RAG) - we reache this point. Must've gotten the lock! Transform request edge to allocation edge
+	//TODO (RAG) - we reached this point. Must've gotten the lock! Transform request edge to allocation edge
 	//TODO END
 
 	restore(mask);				//reenable interrupts
@@ -152,8 +175,10 @@ syscall	release(lid32 lockid)
 
 	//TODO START
 	//TODO - remove current process' ID from the lock's queue
+	remove(currpid, loctab[lockid]->wait_queue);
 
 	//TODO - unlock the mutex
+	loctab[lockid]->lock = FALSE;
 
 	//TODO (RAG) - remove allocation edge from RAG
 	//TODO END
