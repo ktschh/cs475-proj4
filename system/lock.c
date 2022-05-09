@@ -99,6 +99,7 @@ syscall	lock_delete(lid32 lockid)
 	}
 
 	//TODO (RAG) - remove all RAG edges to and from this lock
+	
 
 	//TODO END
 

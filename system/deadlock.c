@@ -12,24 +12,6 @@
 
 struct AdjList* stack;
 
-typedef struct AdjListNode {
-    int id;
-    int lockOrProc;
-    struct AdjListNode* next;
-}AdjListNode;
- 
-// A structure to represent an adjacency list
-typedef struct AdjList {
-    int id;
-    int lockOrProc;
-    struct AdjListNode* head;
-}AdjList;
- 
-
-typedef struct Graph {
-    int V;
-    struct AdjList* array;
-}Graph;
 
 /**
  *
@@ -79,7 +61,7 @@ struct Graph* createGraph()
  
     return graph;
 }
-
+/*
 void freeGraph(Graph *graph)
 {
     AdjListNode *check = NULL;
@@ -98,6 +80,7 @@ void freeGraph(Graph *graph)
     free(graph->array);
     free(graph);
 }
+*/
 
 
 
@@ -176,6 +159,72 @@ void rag_alloc(Graph *graph, int pid, int lockid)
         }
     }
     
+}
+/**
+ *
+ *
+ */
+void delete_edges(Graph *graph, int edge){
+    // remove request edge
+    AdjListNode *check = NULL;
+    AdjListNode *prev = NULL;
+    int i;
+    for (i = 0; i < NPROC; i++)
+    {
+        if (graph->array[i].id == edge){
+            // figure out where in it's list to put it
+            check = graph->array[i].head;
+            while (check != NULL)
+            {
+                if (check->id == edge && check->lockOrProc == LOCK)
+                {
+                    //printf("we found it\n");
+                    if (prev == NULL)
+                    {
+                        graph->array[i].head = check->next;
+                    }
+                    else{
+                        prev->next = check->next;
+                    }
+                    free(check);
+                    break;
+                    
+                }
+                prev = check;
+                check = check->next;
+            }
+        }
+    }
+
+    // remove allocation edge
+    check = NULL;
+    prev = NULL;
+    int i;
+    for (i = NPROC; i < (NPROC + NLOCK); i++)
+    {
+        if (graph->array[i].id == edge){
+            // figure out where in it's list to put it
+            check = graph->array[i].head;
+            while (check != NULL)
+            {
+                if (check->id == edge && check->lockOrProc == PROC)
+                {
+                    if (prev == NULL)
+                    {
+                        graph->array[i].head = check->next;
+                    }
+                    else{
+                        prev->next = check->next;
+                    }
+                    free(check);
+                    break;
+                    
+                }
+                prev = check;
+                check = check->next;
+            }
+        }
+    }
 }
 
 /**
