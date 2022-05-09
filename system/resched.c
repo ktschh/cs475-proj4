@@ -1,6 +1,7 @@
 /* resched.c - resched */
 
 #include <xinu.h>
+int32 counter = 0;
 
 /**
  * Reschedule processor to next ready process
@@ -8,6 +9,18 @@
  */
 void	resched(void)		// assumes interrupts are disabled
 {
+	// increment counter
+	counter++;
+	
+	if (counter == 49)
+	{
+		counter = 0;
+		intmask mask = disable(); //disable interrupts
+		deadlock_detect(rag);
+		//other code with interrupt disabled
+		restore(mask); //reenable interrupts
+	}
+
 	pid32 oldpid = currpid;
 	struct procent *ptold;	// ptr to table entry for old process
 	struct procent *ptnew;	// ptr to table entry for new process

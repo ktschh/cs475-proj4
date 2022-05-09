@@ -20,6 +20,7 @@ struct	procent	proctab[NPROC];	/* Process table			*/
 struct	sentry	semtab[NSEM];	/* Semaphore table			*/
 struct	memblk	memlist;	/* List of free memory blocks		*/
 struct lockentry locktab[NLOCK];	/* Lock table */
+struct 	Graph	*rag;
 
 /* Active system status */
 
@@ -109,7 +110,6 @@ static	void	sysinit(void)
 	struct	sentry	*semptr;	/* prr to semaphore table entry	*/
 	struct  lockentry *lockptr;	/* prr to lock table entry	*/
 	struct	memblk	*memptr;	/* ptr to memory block		*/
-	struct 	Graph	*rag;
 
 	/* Initialize the interrupt vectors */
 

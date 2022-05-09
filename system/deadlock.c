@@ -61,7 +61,7 @@ struct Graph* createGraph()
  
     return graph;
 }
-/*
+
 void freeGraph(Graph *graph)
 {
     AdjListNode *check = NULL;
@@ -74,13 +74,13 @@ void freeGraph(Graph *graph)
         {
             prev = check;
             check = check->next;
-            free(prev);
+            free(prev, sizeof(struct AdjListNode));
         }
     }
-    free(graph->array);
-    free(graph);
+    free(graph->array, (NPROC + NLOCK)*sizeof(struct AdjList));
+    free(graph, sizeof(struct Graph));
 }
-*/
+
 
 
 
@@ -149,7 +149,7 @@ void rag_alloc(Graph *graph, int pid, int lockid)
                     else{
                         prev->next = check->next;
                     }
-                    free(check);
+                    free(check, sizeof(struct AdjListNode));
                     break;
                     
                 }
@@ -164,66 +164,84 @@ void rag_alloc(Graph *graph, int pid, int lockid)
  *
  *
  */
-void delete_edges(Graph *graph, int edge){
+void delete_edges(Graph *graph, int lockid){
     // remove request edge
     AdjListNode *check = NULL;
     AdjListNode *prev = NULL;
     int i;
     for (i = 0; i < NPROC; i++)
     {
-        if (graph->array[i].id == edge){
-            // figure out where in it's list to put it
-            check = graph->array[i].head;
-            while (check != NULL)
+        // figure out where in it's list to put it
+        check = graph->array[i].head;
+        while (check != NULL)
+        {
+            if (check->id == lockid && check->lockOrProc == LOCK)
             {
-                if (check->id == edge && check->lockOrProc == LOCK)
+                //printf("we found it\n");
+                if (prev == NULL)
                 {
-                    //printf("we found it\n");
-                    if (prev == NULL)
-                    {
-                        graph->array[i].head = check->next;
-                    }
-                    else{
-                        prev->next = check->next;
-                    }
-                    free(check);
-                    break;
-                    
+                    graph->array[i].head = check->next;
                 }
-                prev = check;
-                check = check->next;
+                else{
+                    prev->next = check->next;
+                }
+                free(check, sizeof(struct AdjListNode));
+                break;
+                
             }
+            prev = check;
+            check = check->next;
         }
     }
 
+    int trueid = lockid + NPROC;
+    check = graph->array[trueid].head;
+    while (check != NULL)
+    {
+        graph->array[trueid].head = check->next;
+        free(check, sizeof(struct AdjListNode));
+        check = graph->array[trueid].head;
+    }
+}
+
+void delete_proc_edges(Graph *graph, int pid)
+{
     // remove allocation edge
-    check = NULL;
-    prev = NULL;
+    AdjListNode *check = NULL;
+    AdjListNode *prev = NULL;
     int i;
     for (i = NPROC; i < (NPROC + NLOCK); i++)
     {
-        if (graph->array[i].id == edge){
-            // figure out where in it's list to put it
-            check = graph->array[i].head;
-            while (check != NULL)
+        // figure out where in it's list to put it
+        check = graph->array[i].head;
+        while (check != NULL)
+        {
+            if (check->id == pid && check->lockOrProc == PROC)
             {
-                if (check->id == edge && check->lockOrProc == PROC)
+                //printf("we found it\n");
+                if (prev == NULL)
                 {
-                    if (prev == NULL)
-                    {
-                        graph->array[i].head = check->next;
-                    }
-                    else{
-                        prev->next = check->next;
-                    }
-                    free(check);
-                    break;
-                    
+                    graph->array[i].head = check->next;
                 }
-                prev = check;
-                check = check->next;
+                else{
+                    prev->next = check->next;
+                }
+                free(check, sizeof(struct AdjListNode));
+                break;
+                
             }
+            prev = check;
+            check = check->next;
         }
+    }
+
+    // remove all request edges
+    check = graph->array[pid].head;
+    while (check != NULL)
+    {
+        graph->array[pid].head = check->next;
+        free(check, sizeof(struct AdjListNode));
+        check = graph->array[pid].head;
     }
 }
 
@@ -253,7 +271,7 @@ void rag_dealloc(Graph *graph, int pid, int lockid)
                     else{
                         prev->next = check->next;
                     }
-                    free(check);
+                    free(check, sizeof(struct AdjListNode));
                     break;
                     
                 }
@@ -306,6 +324,7 @@ void rag_print(Graph *graph)
  */
 int deadlock_detect(Graph *g)
 {
+    kprintf("Detecting\n");
     int visited[g->V];
     int rec[g->V];
     for (int i = 0; i < g->V; i++)
@@ -314,6 +333,7 @@ int deadlock_detect(Graph *g)
         rec[i] = 0;
     }
 
+    int returnlock;
     for (int i = 0; i < g->V; i++)
     {
         if (isCycle(i, visited, rec, g))
@@ -359,10 +379,15 @@ int deadlock_detect(Graph *g)
             while (check != NULL)
             {
                 stack->head = check->next;
-                free(check);
+                if (stack->head->lockOrProc == LOCK)
+                {
+                    returnlock = stack->head->id;
+                }
+                free(check, sizeof(struct AdjListNode));
                 check = stack->head;
             }
-            free(stack);
+            free(stack, sizeof(struct AdjList));
+            deadlock_recover(returnlock);
             return 1;
         }
     }
@@ -427,4 +452,43 @@ int isCycle(int i, int *visited, int *recStack, Graph *graph)
     }
     recStack[i] = 0;
     return 0;
+}
+
+void deadlock_recover(int lockid)
+{
+    //kprintf("Recovering lockid=%d\n", lockid);
+    struct	lockentry *lptr;
+
+    lptr = &locktab[lockid];
+
+    // remove all processes from wait queue and add to ready queue
+    pid32 temp;
+	while (nonempty(lptr->wait_queue))
+	{
+		temp = dequeue(lptr->wait_queue);
+        //kprintf("Dequeued pid=%d\n", temp);
+		enqueue(temp, readyqueue, proctab[temp].prprio);
+	}
+
+    // find id of process that holds the lock
+    pid32 pid = rag->array[lockid+NPROC].head->id;
+    //kprintf("Killing pid=%d\n", pid);
+    kill(pid);
+
+    //kprintf("Removing process from wait queues\n");
+    // remove process from lock queues
+    int i;
+    for (i = NPROC; i < (NPROC + NLOCK); i++)
+    {
+        remove(pid, lptr->wait_queue);
+    }
+
+    // unlock the lock
+    mutex_unlock(&lptr->lock);
+
+    // remove all edges
+    delete_proc_edges(rag, pid);
+
+    // print message
+    kprintf("DEADLOCK RECOVER\tKilling pid=%d to release lockid=%d\n", pid, lockid);
 }

@@ -24,11 +24,13 @@ typedef struct Graph {
 
 struct Graph* createGraph();
 //void freeGraph(Graph *graph);
-struct AdjListNode* newAdjListNode(int dest);
+struct AdjListNode* newAdjListNode(int id, int lockOrProc);
 void rag_request(Graph *graph, int pid, int lockid);
 void rag_alloc(Graph *graph, int pid, int lockid);
 void rag_dealloc(Graph *graph, int pid, int lockid);
 void rag_print(Graph *graph);
 int deadlock_detect(Graph *graph);
 int isCycle(int i, int *visited, int *recStack, Graph *graph);
-void delete_edges(Graph *graph, int edge);
+void delete_edges(Graph *graph, int lockid);
+void delete_proc_edges(Graph *graph, int pid);
+void deadlock_recover(int lockid);
