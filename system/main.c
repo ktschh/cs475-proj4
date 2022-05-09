@@ -7,8 +7,8 @@
 #define N 5	//number of philosophers and forks
 
 //TODO - locks must be declared and initialized here
-mutex_t	lock;
-mutex_t	fork[N]; //= {FALSE, FALSE, FALSE, FALSE, FALSE};
+lid32	lock;
+lid32	fork[N]; //= {FALSE, FALSE, FALSE, FALSE, FALSE};
 
 
 /**
@@ -63,7 +63,7 @@ void	philosopher(uint32 phil_id)
 		else	//eat 30% of the time
 		{
 			acquire(fork[right]);	//grab the right fork (or wait)
-			if (locktab[fork[left]].state = LOCK_FREE)
+			if (locktab[fork[left]].lock = FALSE)
 			{
 				acquire(fork[left]);	//grab the left fork
 
