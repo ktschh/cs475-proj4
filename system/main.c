@@ -1,5 +1,6 @@
 /*  main.c  - main */
 
+
 #include <xinu.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +12,7 @@ lid32	lock;
 lid32	fork[N]; //= {FALSE, FALSE, FALSE, FALSE, FALSE};
 
 
-/**
+/*
  * Delay for a random amount of time
  * @param alpha delay factor
  */
@@ -38,8 +39,6 @@ void	think()
 	holdup(1000);
 }
 
-
-
 /**
  * Philosopher's code
  * @param phil_id philosopher's id
@@ -63,7 +62,7 @@ void	philosopher(uint32 phil_id)
 		else	//eat 30% of the time
 		{
 			acquire(fork[right]);	//grab the right fork (or wait)
-			if (locktab[fork[left]].lock = FALSE)
+			if (locktab[fork[left]].lock == FALSE)
 			{
 				acquire(fork[left]);	//grab the left fork
 

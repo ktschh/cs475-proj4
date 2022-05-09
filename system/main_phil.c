@@ -1,5 +1,6 @@
 /*  main.c  - main */
 
+
 #include <xinu.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,11 +8,11 @@
 #define N 5	//number of philosophers and forks
 
 //TODO - locks must be declared and initialized here
-mutex_t	lock = FALSE;
-mutex_t	fork[N] = {FALSE, FALSE, FALSE, FALSE, FALSE};
+lid32	lock;
+lid32	fork[N]; //= {FALSE, FALSE, FALSE, FALSE, FALSE};
 
 
-/**
+/*
  * Delay for a random amount of time
  * @param alpha delay factor
  */
@@ -38,8 +39,6 @@ void	think()
 	holdup(1000);
 }
 
-
-
 /**
  * Philosopher's code
  * @param phil_id philosopher's id
@@ -54,31 +53,31 @@ void	philosopher(uint32 phil_id)
 		//think 70% of the time
 		if ((rand()*1.0)/RAND_MAX < 0.7)
 		{
-			mutex_lock(&lock);
+			acquire(lock);
 			kprintf("Philosopher %d thinking: zzzzzZZZz\n", phil_id);
-			mutex_unlock(&lock);
+			release(lock);
 
 			think();
 		}
 		else	//eat 30% of the time
 		{
-			mutex_lock(&fork[right]);	//grab the right fork (or wait)
-			if (!fork[left])
+			acquire(fork[right]);	//grab the right fork (or wait)
+			if (locktab[fork[left]].lock = FALSE)
 			{
-				mutex_lock(&fork[left]);	//grab the left fork
+				acquire(fork[left]);	//grab the left fork
 
-				mutex_lock(&lock);
+				acquire(lock);
 				kprintf("Philosopher %d eating: nom nom nom\n", phil_id);
-				mutex_unlock(&lock);
+				release(lock);
 
 				eat();
 
-				mutex_unlock(&fork[left]);
-				mutex_unlock(&fork[right]);
+				release(fork[left]);
+				release(fork[right]);
 			}
 			else
 			{
-				mutex_unlock(&fork[right]);	//relinquish right fork
+				release(fork[right]);	//relinquish right fork
 			}
 		}
 	}
@@ -86,6 +85,14 @@ void	philosopher(uint32 phil_id)
 
 int	main(uint32 argc, uint32 *argv)
 {
+    //initialize locks
+    lock = lock_create();
+    int32 i;
+    for (i = 0; i < N; i++)
+    {
+        fork[i] = lock_create();
+    }
+
 	ready(create((void*) philosopher, INITSTK, 15, "Ph1", 1, 0), FALSE);
 	ready(create((void*) philosopher, INITSTK, 15, "Ph2", 1, 1), FALSE);
 	ready(create((void*) philosopher, INITSTK, 15, "Ph3", 1, 2), FALSE);

@@ -140,7 +140,7 @@ syscall	acquire(lid32 lockid)
 
 	//TODO START
 	//TODO - lock the mutex!
-	lptr->lock = TRUE;
+	mutex_lock(lptr->lock);
 	//TODO END
 
 	mask = disable();			//disable interrupts
@@ -179,7 +179,7 @@ syscall	release(lid32 lockid)
 	remove(currpid, lptr->wait_queue);
 
 	//TODO - unlock the mutex
-	lptr->lock = FALSE;
+	mutex_unlock(lptr->lock);
 
 	//TODO (RAG) - remove allocation edge from RAG
 	//TODO END
