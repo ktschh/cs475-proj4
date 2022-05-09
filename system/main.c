@@ -54,31 +54,31 @@ void	philosopher(uint32 phil_id)
 		//think 70% of the time
 		if ((rand()*1.0)/RAND_MAX < 0.7)
 		{
-			acquire(&lock);
+			acquire(lock);
 			kprintf("Philosopher %d thinking: zzzzzZZZz\n", phil_id);
-			release(&lock);
+			release(lock);
 
 			think();
 		}
 		else	//eat 30% of the time
 		{
-			acquire(&fork[right]);	//grab the right fork (or wait)
-			if (!fork[left])
+			acquire(fork[right]);	//grab the right fork (or wait)
+			if (locktab[fork[left]].state = LOCK_FREE)
 			{
-				acquire(&fork[left]);	//grab the left fork
+				acquire(fork[left]);	//grab the left fork
 
-				acquire(&lock);
+				acquire(lock);
 				kprintf("Philosopher %d eating: nom nom nom\n", phil_id);
-				release(&lock);
+				release(lock);
 
 				eat();
 
-				release(&fork[left]);
-				release(&fork[right]);
+				release(fork[left]);
+				release(fork[right]);
 			}
 			else
 			{
-				release(&fork[right]);	//relinquish right fork
+				release(fork[right]);	//relinquish right fork
 			}
 		}
 	}
