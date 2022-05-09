@@ -1,18 +1,16 @@
 /*  main.c  - main */
 
-
 #include <xinu.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#define N 5	//number of philosophers and forks
+#define N 2
 
-//TODO - locks must be declared and initialized here
-lid32	lock;
-lid32	fork[N]; //= {FALSE, FALSE, FALSE, FALSE, FALSE};
+lid32	printer_lock;
+lid32	mylock[N];
 
 
-/*
+/**
  * Delay for a random amount of time
  * @param alpha delay factor
  */
@@ -24,80 +22,53 @@ void	holdup(int32 alpha)
 }
 
 /**
- * Eat for a random amount of time
+ * Work for a random amount of time
+ * @param id ID of worker
  */
-void	eat()
+void	work(uint32 id)
 {
+	acquire(printer_lock);
+	kprintf("Worker %d: Buzz buzz buzz\n", id);
+	release(printer_lock);
 	holdup(10000);
 }
 
-/**
- * Think for a random amount of time
- */
-void	think()
-{
-	holdup(1000);
-}
 
 /**
- * Philosopher's code
- * @param phil_id philosopher's id
+ * Worker code
+ * @param id ID of worker
  */
-void	philosopher(uint32 phil_id)
+void	worker(uint32 id)
 {
-	uint32 right = phil_id;				//right fork
-	uint32 left = N - ((N-phil_id) % N) - 1;	//left fork
-
-	while (TRUE)
+	if (id == 0)
 	{
-		//think 70% of the time
-		if ((rand()*1.0)/RAND_MAX < 0.7)
-		{
-			acquire(lock);
-			kprintf("Philosopher %d thinking: zzzzzZZZz\n", phil_id);
-			release(lock);
-
-			think();
-		}
-		else	//eat 30% of the time
-		{
-			acquire(fork[right]);	//grab the right fork (or wait)
-			if (locktab[fork[left]].lock == FALSE)
-			{
-				acquire(fork[left]);	//grab the left fork
-
-				acquire(lock);
-				kprintf("Philosopher %d eating: nom nom nom\n", phil_id);
-				release(lock);
-
-				eat();
-
-				release(fork[left]);
-				release(fork[right]);
-			}
-			else
-			{
-				release(fork[right]);	//relinquish right fork
-			}
-		}
+		acquire(mylock[0]);
+		work(id);
+		acquire(mylock[1]);
+		work(id);
+		release(mylock[1]);
+		release(mylock[0]);
+	}
+	else
+	{
+		acquire(mylock[1]);
+		work(id);
+		acquire(mylock[0]);
+		work(id);
+		release(mylock[0]);
+		release(mylock[1]);
 	}
 }
 
 int	main(uint32 argc, uint32 *argv)
 {
-    //initialize locks
-    lock = lock_create();
-    int32 i;
-    for (i = 0; i < N; i++)
-    {
-        fork[i] = lock_create();
-    }
+	int i;
+	printer_lock = lock_create();
+	for (i=0; i<N; i++)
+		mylock[i] = lock_create();
 
-	ready(create((void*) philosopher, INITSTK, 15, "Ph1", 1, 0), FALSE);
-	ready(create((void*) philosopher, INITSTK, 15, "Ph2", 1, 1), FALSE);
-	ready(create((void*) philosopher, INITSTK, 15, "Ph3", 1, 2), FALSE);
-	ready(create((void*) philosopher, INITSTK, 15, "Ph4", 1, 3), FALSE);
-	ready(create((void*) philosopher, INITSTK, 15, "Ph5", 1, 4), FALSE);
+	ready(create((void*) worker, INITSTK, 15, "Worker 0", 1, 0), FALSE);
+	ready(create((void*) worker, INITSTK, 15, "Worker 1", 1, 1), FALSE);
 
 	return 0;
 }

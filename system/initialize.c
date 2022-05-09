@@ -109,6 +109,7 @@ static	void	sysinit(void)
 	struct	sentry	*semptr;	/* prr to semaphore table entry	*/
 	struct  lockentry *lockptr;	/* prr to lock table entry	*/
 	struct	memblk	*memptr;	/* ptr to memory block		*/
+	struct 	Graph	*rag;
 
 	/* Initialize the interrupt vectors */
 
@@ -186,6 +187,9 @@ static	void	sysinit(void)
 		lockptr->lock = FALSE;
 		lockptr->wait_queue = newqueue();
 	}
+
+	/* Initialize RAG */
+	rag = createGraph();
 
 	/* Initialize buffer pools */
 

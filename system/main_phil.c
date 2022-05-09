@@ -62,7 +62,7 @@ void	philosopher(uint32 phil_id)
 		else	//eat 30% of the time
 		{
 			acquire(fork[right]);	//grab the right fork (or wait)
-			if (locktab[fork[left]].lock = FALSE)
+			if (locktab[fork[left]].lock == FALSE)
 			{
 				acquire(fork[left]);	//grab the left fork
 
