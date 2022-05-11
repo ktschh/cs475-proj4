@@ -397,6 +397,7 @@ int deadlock_detect(Graph *g)
 
 int isCycle(int i, int *visited, int *recStack, Graph *graph)
 {
+    //kprintf("Cycling...\n");
     if (recStack[i])
     {
         return 1; // true

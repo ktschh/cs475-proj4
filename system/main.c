@@ -40,25 +40,27 @@ void	work(uint32 id)
  */
 void	worker(uint32 id)
 {
-	if (id == 0)
-	{
-		acquire(mylock[0]);
-		work(id);
-		acquire(mylock[1]);
-		work(id);
-		release(mylock[1]);
-		release(mylock[0]);
+	
+		if (id == 0)
+		{
+			acquire(mylock[0]);
+			work(id);
+			acquire(mylock[1]);
+			work(id);
+			release(mylock[1]);
+			release(mylock[0]);
+		}
+		else
+		{
+			acquire(mylock[1]);
+			work(id);
+			acquire(mylock[0]);
+			work(id);
+			release(mylock[0]);
+			release(mylock[1]);
+		}
 	}
-	else
-	{
-		acquire(mylock[1]);
-		work(id);
-		acquire(mylock[0]);
-		work(id);
-		release(mylock[0]);
-		release(mylock[1]);
-	}
-}
+
 
 int	main(uint32 argc, uint32 *argv)
 {
